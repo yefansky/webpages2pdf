@@ -56,35 +56,26 @@ class WebsiteCrawler:
                     self.queue.put(link)  # 加入队列
 
     def sort_pages(self):
-        # 按照规则排序
-        remaining_pages = self.all_pages.copy()  # 未输出的页面
-        self.sorted_pages = []  # 排序后的页面
+        # 按照URL的路径深度和字母顺序排序
+        def get_path_depth(url):
+            # 计算URL的路径深度（即路径中 '/' 的数量）
+            parsed_url = urlparse(url)
+            path = parsed_url.path
+            return path.count('/')
 
-        while remaining_pages:
-            if not self.sorted_pages:
-                # 如果sorted_pages为空，选择第一个未输出的页面
-                selected_page = remaining_pages.pop(0)
-            else:
-                # 获取最后一个输出的页面
-                last_page = self.sorted_pages[-1]
-                # 查找与last_page有相同前缀的页面
-                selected_page = None
-                for page in remaining_pages:
-                    if page.startswith(last_page.rstrip('/') + '/'):
-                        selected_page = page
-                        break
-                # 如果没有找到相同前缀的页面，选择第一个未输出的页面
-                if not selected_page:
-                    selected_page = remaining_pages.pop(0)
-                else:
-                    remaining_pages.remove(selected_page)
-            self.sorted_pages.append(selected_page)
+        # 先按路径深度排序，再按字母顺序排序
+        self.sorted_pages = sorted(self.all_pages, key=lambda x: (get_path_depth(x), x))
 
     def save_as_pdf(self, output_file):
         options = {
-            'quiet': ''
+            'quiet': '',
         }
-        pdfkit.from_url(self.sorted_pages, output_file, options=options)
+        # Path to the wkhtmltopdf binary
+        path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+
+        # Create a configuration object
+        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+        pdfkit.from_url(self.sorted_pages, output_file, options=options, configuration=config)
 
 if __name__ == "__main__":
     base_url = input("Enter the base URL: ").strip()
